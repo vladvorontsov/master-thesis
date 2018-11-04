@@ -8,6 +8,7 @@ public class Main {
     private static final String PATH_TO_ORIGINAL_DATA = "class10.xlsx";
 
     public static void main(String[] args) {
-        TABLE_SERVICE.createTrainingAndWorkingSet(PATH_TO_ORIGINAL_DATA);
+        //TABLE_SERVICE.createTrainingAndWorkingSet(PATH_TO_ORIGINAL_DATA);
+        TABLE_SERVICE.createSpacesInWorkingSet();
     }
 }

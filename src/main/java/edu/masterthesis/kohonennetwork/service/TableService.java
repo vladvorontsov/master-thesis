@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
 public class TableService {
 
     private static TableService instance;
-    private static final String TRAINING_SET_FILE = "training-set.xlsx";
-    private static final String WORKING_SET_FILE = "working-set.xlsx";
-    private static final String WORKING_SET_WITH_SPACES_FILE = "working-set-spaces.xlsx";
+    public static final String TRAINING_SET_FILE = "training-set.xlsx";
+    public static final String WORKING_SET_FILE = "working-set.xlsx";
+    public static final String WORKING_SET_WITH_SPACES_FILE = "working-set-spaces.xlsx";
     private static final Pattern IS_XLSX_FORMAT = Pattern.compile(".*\\.xlsx$");
     private static final Integer TRAINING_SET_SIZE = 5000;
     private static final Integer SPACES_STEP = 250;
@@ -106,12 +106,11 @@ public class TableService {
     }
 
     private void setRow(Row rowToImport, Row rowToExport, List<Integer> cellsToCut) {
-        boolean cutCells = cellsToCut != null;
         Iterator<Cell> cellsToExport = rowToExport.cellIterator();
         Integer cellIndex = 0;
         while (cellsToExport.hasNext()) {
             Cell cell = cellsToExport.next();
-            if (cutCells && cellsToCut.contains(cellIndex)) {
+            if (cellsToCut != null && cellsToCut.contains(cellIndex)) {
                 rowToImport.createCell(cellIndex++).setCellType(CellType.BLANK);
                 continue;
             }

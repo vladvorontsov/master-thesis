@@ -52,15 +52,15 @@ public class DataService {
                     if (cell.getCellType().equals(CellType.BLANK)) {
                         if (cellCounter < VALUES_COUNT) {
                             dataRow.addMark(null);
-                        } else {
+                        } /*else {
                             throw new RuntimeException("Value of cluster can't be empty");
-                        }
+                        }*/
                     } else if (cell.getCellType().equals(CellType.NUMERIC)) {
                         if (cellCounter < VALUES_COUNT) {
                             dataRow.addMark(cell.getNumericCellValue());
-                        } else {
+                        } /*else {
                             dataRow.setCluster((int) cell.getNumericCellValue());
-                        }
+                        }*/
                     } else {
                         throw new RuntimeException("Unexpected cell type");
                     }

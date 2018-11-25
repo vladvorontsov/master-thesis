@@ -20,4 +20,11 @@ public class NeuralConnection {
     public void setInput(Input input) {
         this.input = input;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Weight = ").append(weight).append("; Input: ").append(input);
+        return sb.toString();
+    }
 }

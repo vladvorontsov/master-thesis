@@ -2,6 +2,7 @@ package edu.masterthesis.kohonennetwork.instance;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 public class DataRow {
     private Integer key;
@@ -46,5 +47,13 @@ public class DataRow {
         listOfValues.forEach(mark -> sb.append(mark).append("; "));
         sb.append("Cluster: ").append(key).append(".");
         return sb.toString();
+    }
+
+    public Double getDiffWith(DataRow dataRow) {
+        List<Double> otherListOfValues = dataRow.getAllMarks();
+        if (listOfValues.size() != otherListOfValues.size()) {
+            throw new RuntimeException("Not comparable rows");
+        }
+        return IntStream.range(0, listOfValues.size()).boxed().mapToDouble(i -> Math.pow(listOfValues.get(i) - otherListOfValues.get(i), 2)).sum();
     }
 }

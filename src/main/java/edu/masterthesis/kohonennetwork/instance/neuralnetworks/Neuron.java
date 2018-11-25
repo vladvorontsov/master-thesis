@@ -6,7 +6,7 @@ import java.util.List;
 public class Neuron {
     private Double output;
 
-    List<NeuralConnection> inputs = new ArrayList<>();
+    private List<NeuralConnection> inputs = new ArrayList<>();
 
     public Double getOutput() {
         return output;
@@ -22,5 +22,15 @@ public class Neuron {
 
     public void setInputs(List<NeuralConnection> inputs) {
         this.inputs = inputs;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        for (NeuralConnection connection: inputs) {
+            sb.append("Connection ").append(i++).append(": ").append(connection).append("\n");
+        }
+        return sb.toString();
     }
 }

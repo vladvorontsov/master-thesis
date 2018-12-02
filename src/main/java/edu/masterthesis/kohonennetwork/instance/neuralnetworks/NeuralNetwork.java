@@ -59,13 +59,19 @@ public class NeuralNetwork {
         }
     }
 
+    public void generateOutputs() {
+        for (Neuron neuron: neurons) {
+            neuron.generateOutput();
+        }
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Inputs:\n");
         int i = 0;
         for (Input input: inputs) {
-            sb.append("\t").append(i++).append(input).append("\n");
+            sb.append("\t").append(i++).append(" ").append(input).append("\n");
         }
         sb.append("Neurons:\n");
         i = 0;

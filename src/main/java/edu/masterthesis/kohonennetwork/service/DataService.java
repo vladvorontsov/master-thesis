@@ -2,7 +2,6 @@ package edu.masterthesis.kohonennetwork.service;
 
 import edu.masterthesis.kohonennetwork.instance.DataRow;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -14,6 +13,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
 public class DataService {
 
     private static DataService instance;
@@ -46,20 +46,19 @@ public class DataService {
 
                 while (cellIterator.hasNext()) {
                     Cell cell = cellIterator.next();
-                    if (cell.getCellType().equals(CellType.BLANK)) {
-                        if (cellCounter < VALUES_COUNT) {
-                            dataRow.addMark(null);
-                        } /*else {
-                            throw new RuntimeException("Value of cluster can't be empty");
-                        }*/
-                    } else if (cell.getCellType().equals(CellType.NUMERIC)) {
-                        if (cellCounter < VALUES_COUNT) {
-                            dataRow.addMark(cell.getNumericCellValue());
-                        } /*else {
-                            dataRow.setCluster((int) cell.getNumericCellValue());
-                        }*/
-                    } else {
-                        throw new RuntimeException("Unexpected cell type");
+                    switch (cell.getCellType()) {
+                        case BLANK:
+                            if (cellCounter < VALUES_COUNT) {
+                                dataRow.addMark(null);
+                            }
+                            break;
+                        case NUMERIC:
+                            if (cellCounter < VALUES_COUNT) {
+                                dataRow.addMark(cell.getNumericCellValue());
+                            }
+                            break;
+                        default:
+                            throw new RuntimeException("Unexpected cell type");
                     }
                     cellCounter++;
                 }
@@ -81,7 +80,7 @@ public class DataService {
             throw new RuntimeException("Failed to calculate max/min value of Data");
         }
         Double diff = maxMark - minMark;
-        for (DataRow row: notNormalizedData) {
+        for (DataRow row : notNormalizedData) {
             for (int i = 0; i < row.getAllMarks().size(); i++) {
                 Double mark = row.getMark(i);
                 row.setMark(i, (mark - minMark) / diff);

@@ -2,6 +2,10 @@ package edu.masterthesis.kohonennetwork.service;
 
 import edu.masterthesis.kohonennetwork.instance.DataCluster;
 import edu.masterthesis.kohonennetwork.instance.DataRow;
+import edu.masterthesis.kohonennetwork.instance.neuralnetworks.Input;
+import edu.masterthesis.kohonennetwork.instance.neuralnetworks.NeuralConnection;
+import edu.masterthesis.kohonennetwork.instance.neuralnetworks.NeuralNetwork;
+import edu.masterthesis.kohonennetwork.instance.neuralnetworks.Neuron;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -17,9 +21,14 @@ import java.util.stream.Stream;
 
 public class NeuralNetworkService {
 
+    public static final Double WINNER_COEFFICIENT = 0.02;
+    public static final Double COMPETITOR_COEFFICIENT = -0.06;
+    public static final Integer EPOCHS_MAX = 15;
+    private static final Double EPSILON = 0.0001;
     private static NeuralNetworkService instance;
 
-    private NeuralNetworkService() {}
+    private NeuralNetworkService() {
+    }
 
     public static NeuralNetworkService getNeuralNetworkService() {
         if (instance == null) {
@@ -97,7 +106,7 @@ public class NeuralNetworkService {
         List<List<Integer>> returnList = new LinkedList<>();
         List<Integer> leftSide = new ArrayList<>();
         List<Integer> rightSide = new ArrayList<>();
-        for (Integer index: coefficients) {
+        for (Integer index : coefficients) {
             Double diff = initialCluster.get(index).getMark(maxDiffIndex) - closestMark;
             if (diff < 0) {
                 leftSide.add(index);
@@ -125,7 +134,7 @@ public class NeuralNetworkService {
     private List<Double> getDiffSumm(List<Double> diffBetweenCenters) {
         Double sum = 0.;
         List<Double> sumDiff = new ArrayList<>();
-        for (Double diff: diffBetweenCenters) {
+        for (Double diff : diffBetweenCenters) {
             sum += diff;
             sumDiff.add(sum);
         }
@@ -147,7 +156,7 @@ public class NeuralNetworkService {
         List<List<Double>> variables =
                 Stream.generate((Supplier<ArrayList<Double>>) ArrayList::new).limit(initialCluster.get(0).getAllMarks().size())
                         .collect(Collectors.toList());
-        for (Integer n: indexes) {
+        for (Integer n : indexes) {
             DataRow row = initialCluster.get(n);
             for (int i = 0; i < row.getAllMarks().size(); i++) {
                 variables.get(i).add(row.getMark(i));
@@ -166,5 +175,107 @@ public class NeuralNetworkService {
             throw new RuntimeException("Failed to find min or max");
         }
         return maxDiffIndex;
+    }
+
+    public void trainNetwork(NeuralNetwork kohonenNetwork, List<DataRow> trainingData, Double competitorInitialCoefficient,
+                             Double winnerInitialCoefficient, Integer epochsMax) {
+        if (kohonenNetwork.getInputs().size() != trainingData.iterator().next().getAllMarks().size()) {
+            throw new RuntimeException("Can't train Network with not similar number of inputs and marks");
+        }
+
+        Double competitorCoef = competitorInitialCoefficient;
+        Double winnerCoef = winnerInitialCoefficient;
+        Integer epochCounter = 0;
+        List<Integer> wins = new ArrayList<>();
+        for (Neuron n : kohonenNetwork.getNeurons()) {
+            wins.add(1);
+        }
+        List<List<Double>> prevResult = generateCenters(kohonenNetwork);
+        List<List<Double>> newResult = null;
+        do {
+            epochCounter++;
+            System.out.println("Epoch number " + epochCounter + " is started");
+            if (newResult != null) {
+                prevResult = newResult;
+            }
+            for (DataRow row : trainingData) {
+                List<Double> marks = row.getAllMarks();
+                List<Input> inputs = kohonenNetwork.getInputs();
+                for (int i = 0; i < marks.size(); i++) {
+                    inputs.get(i).setValue(marks.get(i));
+                }
+                kohonenNetwork.generateOutputs();
+            }
+
+            ToDoubleFunction<Integer> toDouble = ind -> kohonenNetwork.getNeurons().get(ind).getOutput();
+            List<Integer> winnerAndCompetitor =
+                    IntStream.range(0, kohonenNetwork.getNeurons().size()).boxed()
+                            .sorted(Comparator.comparingDouble(toDouble)).limit(2).collect(Collectors.toList());
+            if (winnerAndCompetitor.size() < 2) {
+                throw new RuntimeException("Competitor or/and Winner doesn't exist");
+            }
+            Integer winner = winnerAndCompetitor.get(0);
+            Integer competitor = winnerAndCompetitor.get(1);
+            if (kohonenNetwork.getNeurons().get(winner).getOutput() > kohonenNetwork.getNeurons().get(competitor).getOutput()) {
+                throw new RuntimeException("Winner has bigger output that competitor");
+            }
+
+            wins.set(winner, wins.get(winner) + 1);
+            updateWeights(kohonenNetwork.getNeurons().get(winner), winnerCoef);
+            updateWeights(kohonenNetwork.getNeurons().get(competitor), competitorCoef);
+            winnerCoef = winnerCoef * (1 - epochCounter.doubleValue() / epochsMax);
+            competitorCoef = competitorCoef * (1 - epochCounter.doubleValue() / epochsMax);
+            newResult = generateCenters(kohonenNetwork);
+        } while (epochCounter < epochsMax && calculateEpsilon(prevResult, newResult) > EPSILON);
+        deleteIllegalClusters(kohonenNetwork);
+    }
+
+    private void deleteIllegalClusters(NeuralNetwork kohonenNetwork) {
+        List<Neuron> neuronsToRemove = new ArrayList<>();
+        for (Neuron neuron : kohonenNetwork.getNeurons()) {
+            for (NeuralConnection nc : neuron.getInputs()) {
+                Double weight = nc.getWeight();
+                if (weight < 0 || weight > 1) {
+                    neuronsToRemove.add(neuron);
+                    break;
+                }
+            }
+        }
+        if (neuronsToRemove.size() != 0) {
+            kohonenNetwork.getNeurons().removeAll(neuronsToRemove);
+            System.out.println(neuronsToRemove.size() + " cluster deleted");
+        } else {
+            System.out.println("Don't need to remove clusters");
+        }
+    }
+
+    private Double calculateEpsilon(List<List<Double>> prevResult, List<List<Double>> newResult) {
+        if (prevResult.size() != newResult.size()) {
+            throw new RuntimeException("can't calculate difference between results");
+        }
+        return IntStream.range(0, prevResult.size()).boxed().mapToDouble(i -> {
+            List<Double> prev = prevResult.get(i);
+            List<Double> next = newResult.get(i);
+            if (prev.size() != next.size()) {
+                throw new RuntimeException("can't calculate difference between results");
+            }
+            Double sum = IntStream.range(0, prev.size()).boxed()
+                    .mapToDouble(n -> Math.pow(prev.get(n) - next.get(n), 2.)).sum();
+            return Math.sqrt(sum);
+        }).sum();
+    }
+
+    private List<List<Double>> generateCenters(NeuralNetwork kohonenNetwork) {
+        return kohonenNetwork.getNeurons().stream()
+                .map(neuron -> neuron.getInputs().stream().map(NeuralConnection::getWeight).collect(Collectors.toList())).collect(Collectors.toList());
+    }
+
+    private void updateWeights(Neuron neuron, Double coefficient) {
+        for (NeuralConnection connection : neuron.getInputs()) {
+            Double oldWeight = connection.getWeight();
+            Double inputValue = connection.getInput().getValue();
+            if (inputValue != null)
+                connection.setWeight(oldWeight + coefficient * (inputValue - oldWeight));
+        }
     }
 }

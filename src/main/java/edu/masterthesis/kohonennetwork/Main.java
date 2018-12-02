@@ -30,6 +30,15 @@ public class Main {
         log("Initial clusters created");
         kohonenNetwork.setInitialWeight(initialCenters);
         log(kohonenNetwork.toString());
+        log("\nTrain Kohonen network");
+        NN_SERVICE.trainNetwork(
+                kohonenNetwork,trainingData,
+                NeuralNetworkService.COMPETITOR_COEFFICIENT,
+                NeuralNetworkService.WINNER_COEFFICIENT,
+                NeuralNetworkService.EPOCHS_MAX);
+        log(kohonenNetwork.toString());
+        //List<DataRow> workingData =
+        //        DATA_SERVICE.getDataFromPathClusterIncluded(TableService.WORKING_SET_WITH_SPACES_FILE);
     }
 
     private static void log(String message) {

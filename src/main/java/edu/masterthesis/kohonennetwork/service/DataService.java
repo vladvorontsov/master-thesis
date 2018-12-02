@@ -11,8 +11,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class DataService {
 
@@ -55,6 +59,8 @@ public class DataService {
                         case NUMERIC:
                             if (cellCounter < VALUES_COUNT) {
                                 dataRow.addMark(cell.getNumericCellValue());
+                            } else {
+                                dataRow.setCluster((int) cell.getNumericCellValue());
                             }
                             break;
                         default:
@@ -86,5 +92,47 @@ public class DataService {
                 row.setMark(i, (mark - minMark) / diff);
             }
         }
+    }
+
+    public Map<Integer, Integer> creatingMappingBetweenClusters(List<Integer> oldClusters, List<Integer> newClusters) {
+        if (oldClusters.size() != newClusters.size()) {
+            throw new RuntimeException("Can't map clusters for lists of different size");
+        }
+        Map<Integer, Map<Integer, Integer>> counter = new HashMap<>();
+        for (int i = 0; i < oldClusters.size(); i++) {
+            Integer oldC = oldClusters.get(i);
+            Integer newC = newClusters.get(i);
+            counter.computeIfAbsent(oldC, k -> new HashMap<>());
+            Map<Integer, Integer> counterOfC = counter.get(oldC);
+            counterOfC.putIfAbsent(newC, 0);
+            Integer count = counterOfC.get(newC);
+            counterOfC.put(newC, count + 1);
+        }
+        return counter.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, i -> getMostResent(i.getValue())));
+    }
+
+    private static Integer getMostResent(Map<Integer, Integer> counter) {
+        Map.Entry<Integer, Integer> best =
+                counter.entrySet().stream().max(Comparator.comparingInt(Map.Entry::getValue)).orElse(null);
+        if (best == null) {
+            throw new RuntimeException("Failed to find best cluster to map");
+        }
+        return best.getKey();
+    }
+
+    public Double measurePrecision(Map<Integer, Integer> mapOfClusters, List<Integer> oldClusters,
+                                   List<Integer> newClusters) {
+        if (oldClusters.size() != newClusters.size()) {
+            throw new RuntimeException("Can't map clusters for lists of different size");
+        }
+        Integer counter = 0;
+        for (int i = 0; i < oldClusters.size(); i++) {
+            Integer oldC = oldClusters.get(i);
+            Integer newC = newClusters.get(i);
+            if (mapOfClusters.get(oldC).equals(newC)) {
+                counter++;
+            }
+        }
+        return counter.doubleValue() / oldClusters.size();
     }
 }

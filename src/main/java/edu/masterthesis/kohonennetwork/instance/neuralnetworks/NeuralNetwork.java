@@ -80,4 +80,11 @@ public class NeuralNetwork {
         }
         return sb.toString();
     }
+
+    public void setInputValues(DataRow row) {
+        List<Double> marks = row.getAllMarks();
+        for (int i = 0; i < marks.size(); i++) {
+            inputs.get(i).setValue(marks.get(i));
+        }
+    }
 }

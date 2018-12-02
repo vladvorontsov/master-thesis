@@ -36,13 +36,13 @@ public class Neuron {
     }
 
     public void generateOutput() {
-        Double sum = IntStream.range(0, inputs.size()).boxed()
-                .mapToDouble(i -> {
-                    Double inputValue = inputs.get(i).getInput().getValue();
+        Double sum = inputs.stream()
+                .mapToDouble(connection -> {
+                    Double inputValue = connection.getInput().getValue();
                     if (inputValue == null) {
                         return 0.;
                     }
-                    return Math.pow(inputValue - inputs.get(i).getWeight(), 2.);
+                    return Math.pow(inputValue - connection.getWeight(), 2.);
                 }).sum();
         setOutput(sum);
     }

@@ -2,7 +2,6 @@ package edu.masterthesis.kohonennetwork.service;
 
 import edu.masterthesis.kohonennetwork.instance.DataCluster;
 import edu.masterthesis.kohonennetwork.instance.DataRow;
-import edu.masterthesis.kohonennetwork.instance.neuralnetworks.Input;
 import edu.masterthesis.kohonennetwork.instance.neuralnetworks.NeuralConnection;
 import edu.masterthesis.kohonennetwork.instance.neuralnetworks.NeuralNetwork;
 import edu.masterthesis.kohonennetwork.instance.neuralnetworks.Neuron;
@@ -199,11 +198,7 @@ public class NeuralNetworkService {
                 prevResult = newResult;
             }
             for (DataRow row : trainingData) {
-                List<Double> marks = row.getAllMarks();
-                List<Input> inputs = kohonenNetwork.getInputs();
-                for (int i = 0; i < marks.size(); i++) {
-                    inputs.get(i).setValue(marks.get(i));
-                }
+                kohonenNetwork.setInputValues(row);
                 kohonenNetwork.generateOutputs();
             }
 
@@ -276,6 +271,20 @@ public class NeuralNetworkService {
             Double inputValue = connection.getInput().getValue();
             if (inputValue != null)
                 connection.setWeight(oldWeight + coefficient * (inputValue - oldWeight));
+        }
+    }
+
+    public void calculateClusters(NeuralNetwork kohonenNetwork, List<DataRow> workingData) {
+        if (kohonenNetwork.getInputs().size() != workingData.iterator().next().getAllMarks().size()) {
+            throw new RuntimeException("Can't train Network with not similar number of inputs and marks");
+        }
+        for (DataRow row: workingData) {
+            kohonenNetwork.setInputValues(row);
+            kohonenNetwork.generateOutputs();
+            ToDoubleFunction<Integer> toDoubleFunction = ind -> kohonenNetwork.getNeurons().get(ind).getOutput();
+            Integer bestIndex =
+                    IntStream.range(0, kohonenNetwork.getNeurons().size()).boxed().min(Comparator.comparingDouble(toDoubleFunction)).orElse(null);
+            row.setCluster(bestIndex);
         }
     }
 }
